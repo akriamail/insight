@@ -1,3 +1,1 @@
-# < opt/insight/README.md >
-
 # 
