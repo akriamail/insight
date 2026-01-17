@@ -1,0 +1,23 @@
+services:
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: insight-gateway
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+      - '81:81'
+    volumes:
+      - /opt/insight-ai/01-gateway/data:/data
+      - /opt/insight-ai/01-gateway/letsencrypt:/etc/letsencrypt
+    networks:
+      - insight-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+# 关键修正：告诉 Docker Compose 这个网络已经由 manage.sh 创建好了
+networks:
+  insight-net:
+    external: true

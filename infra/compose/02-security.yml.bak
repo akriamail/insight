@@ -1,0 +1,20 @@
+services:
+  teleport:
+    image: public.ecr.aws/gravitational/teleport-distroless:18
+    container_name: insight-teleport
+    restart: always
+    # 映射 4443 用于 Web UI，3022 用于 SSH，3025 用于 Auth
+    ports:
+      - "4443:3080"
+      - "3022:3022"
+      - "3025:3025"
+    volumes:
+      - /opt/insight-ai/02-security/data:/var/lib/teleport
+      # 重点：必须挂载到 /etc/teleport/ 这个子目录下
+      - /opt/insight-ai/insight-node-a-init/configs/teleport.yaml:/etc/teleport/teleport.yaml
+    networks:
+      - insight-net
+
+networks:
+  insight-net:
+    external: true

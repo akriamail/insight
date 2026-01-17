@@ -1,0 +1,16 @@
+services:
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: insight-nocodb
+    restart: always
+    environment:
+      # 这里的密码已经过编码处理：z1a2q3W4!%40%23
+      NC_DB: "pg://insight-db:5432?u=insight_admin&p=z1a2q3W4!%40%23&d=nocodb_db"
+    volumes:
+      - /opt/insight-ai/05-data-viz/data:/usr/app/data
+    networks:
+      - insight-net
+
+networks:
+  insight-net:
+    external: true

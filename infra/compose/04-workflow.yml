@@ -1,0 +1,28 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: insight-n8n
+    restart: always
+    # 直接引用环境文件
+    environment:
+      - N8N_HOST=flow.insight.akria.net
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://flow.insight.akria.net/
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=insight-db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=insight_admin
+      - DB_POSTGRESDB_PASSWORD='z1a2q3W4!@#'
+      - GENERIC_TIMEZONE=Asia/Shanghai
+      - TZ=Asia/Shanghai
+    volumes:
+      - /opt/insight-ai/04-workflow/data:/home/node/.n8n
+    networks:
+      - insight-net
+
+networks:
+  insight-net:
+    external: true

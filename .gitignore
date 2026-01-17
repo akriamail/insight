@@ -1,0 +1,12 @@
+# 忽略所有生产数据
+data/**/*
+backups/**/*
+exports/**/*
+
+# 但保留目录结构
+!**/
+!**/.gitkeep
+
+# 系统冗余
+*.log
+.DS_Store

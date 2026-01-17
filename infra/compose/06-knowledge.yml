@@ -1,0 +1,23 @@
+services:
+  wiki:
+    image: requarks/wiki:2
+    container_name: insight-wiki
+    restart: always
+    # 必须添加下面这两行，否则外部（包括浏览器和宿主机防火墙）看不到 3000 端口
+    ports:
+      - "3000:3000"
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: insight-db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: wiki_secure_pass_2026
+      DB_NAME: wikijs
+    volumes:
+      - /opt/insight-ai/06-knowledge/data:/wiki/storage
+    networks:
+      - insight-net
+
+networks:
+  insight-net:
+    external: true

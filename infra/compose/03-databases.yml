@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: insight-db
+    restart: always
+    environment:
+      POSTGRES_USER: insight_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      # 将数据持久化到我们之前创建的 03-databases 目录
+      - /opt/insight-ai/03-databases/data:/var/lib/postgresql/data
+      # 将刚才写的初始化 SQL 挂载进去
+      - /opt/insight-ai/insight-node-a-init/configs/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - insight-net
+    deploy:
+      resources:
+        limits:
+          memory: 2G  # 给数据库预留最高 2G 内存
+
+networks:
+  insight-net:
+    external: true
