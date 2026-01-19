@@ -67,7 +67,7 @@ while true; do
         7)
             echo -e "${YELLOW}提示：初始化将安装 Docker 等环境。${NC}"
             if confirm_action; then
-                bash infra/scripts/setup_env.sh
+                bash infra/scripts/00-bootstrap.sh
             fi
             ;;
         0)
