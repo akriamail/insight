@@ -35,12 +35,12 @@ while true; do
 
     case $choice in
         1)
-            bash infra/scripts/startup.sh
+            bash infra/scripts/02-startup.sh
             bash infra/scripts/03-init-db.sh
             ;;
         2)
             if confirm_action; then
-                bash infra/scripts/shutdown.sh
+                bash infra/scripts/06-shutdown.sh
             fi
             ;;
         3)
@@ -56,12 +56,12 @@ while true; do
             docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
             ;;
         5)
-            bash infra/scripts/backup.sh
+            bash infra/scripts/04-backup.sh
             ;;
         6)
             echo -e "${RED}警告：恢复操作将覆盖当前所有数据！${NC}"
             if confirm_action; then
-                bash infra/scripts/restore.sh
+                bash infra/scripts/05-restore.sh
             fi
             ;;
         7)
