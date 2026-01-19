@@ -28,10 +28,11 @@ while true; do
     echo -e "4) 🌡️  系统监控 (Monitor)"
     echo -e "5) 📂 执行备份 (Backup)"
     echo -e "6) ⚠️  全量恢复 (Restore)"
-    echo -e "7) 🛠️  初始化环境 (Init)"
-    echo -e "0) 🚪 退出 (Exit)"
+    echo -e "7) 🛠️  初始化基础环境 (Init Base Env)"
+    echo -e "8) ✨ 全新服务器部署 (Full Setup)"
+    echo -e "9) 🚪 退出 (Exit)"
     echo -e "${BLUE}----------------------------------------${NC}"
-    read -p "请选择操作 [0-7]: " choice
+    read -p "请选择操作 [0-9]: " choice
 
     case $choice in
         1)
@@ -64,13 +65,28 @@ while true; do
                 bash infra/scripts/05-restore.sh
             fi
             ;;
-        7)
-            echo -e "${YELLOW}提示：初始化将安装 Docker 等环境。${NC}"
+        7) # 初始化基础环境
+            echo -e "${YELLOW}提示：仅初始化基础依赖，如 Docker 等。${NC}"
             if confirm_action; then
                 bash infra/scripts/00-bootstrap.sh
             fi
             ;;
-        0)
+        8) # 全新服务器部署
+            echo -e "${YELLOW}提示：这将执行：1) 初始化基础环境 -> 2) 启动所有服务 -> 3) 初始化数据库。${NC}"
+            if confirm_action; then
+                echo -e "${GREEN}1/3: 正在初始化基础环境...${NC}"
+                bash infra/scripts/00-bootstrap.sh || { echo -e "${RED}❌ 基础环境初始化失败！${NC}"; break; }
+
+                echo -e "${GREEN}2/3: 正在启动所有服务...${NC}"
+                bash infra/scripts/02-startup.sh || { echo -e "${RED}❌ 服务启动失败！${NC}"; break; }
+
+                echo -e "${GREEN}3/3: 正在初始化数据库...${NC}"
+                bash infra/scripts/03-init-db.sh || { echo -e "${RED}❌ 数据库初始化失败！${NC}"; break; }
+
+                echo -e "${GREEN}✨ 全新服务器部署完成！${NC}"
+            fi
+            ;;
+        9)
             echo "👋 祝 Project Team 运行愉快，再见！"
             exit 0
             ;;
