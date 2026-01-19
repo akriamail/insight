@@ -3,6 +3,7 @@
 
 ## 目录结构
 
+```
 .
 ├── manage.sh              # 🚀 唯一交互式入口 (按数字键操作)
 ├── README.md              # 本项目操作说明
@@ -14,6 +15,7 @@
 │   ├── compose/           # Docker Compose 蓝图文件 (.yml)
 │   └── scripts/           # 自动化运维脚本 (backup/restore/setup)
 └── exports/               # [备份产出] 存放生成的全量备份压缩包
+```
 ## 快速操作指南
 1. 新服务器初始化 (开荒)
 
