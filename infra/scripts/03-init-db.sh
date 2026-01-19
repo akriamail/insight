@@ -16,22 +16,36 @@ if [ $RETRIES -eq 0 ]; then
     exit 1
 fi
 
-# 2. 定义需要创建的数据库清单
-DB_LIST=("n8n_db" "nocodb_db" "wikijs_db" "teleport_db")
+# --- 辅助函数：创建数据库（幂等性）---
+create_db_if_not_exists() {
+    DB_NAME=$1
+    DB_USER="insight_admin" # 所有数据库都使用同一个管理员用户
 
-echo "🛠️  开始扫描数据库清单..."
+    echo "⚙️  检查并创建数据库: $DB_NAME"
+    CHECK_DB=$(docker exec -i insight-db psql -U $DB_USER -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")
 
-for DB_NAME in "${DB_LIST[@]}"; do
-    # 检查数据库是否已存在
-    CHECK_DB=$(docker exec -i insight-db psql -U insight_admin -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")
-    
     if [ "$CHECK_DB" != "1" ]; then
         echo "➕ 正在创建新数据库: $DB_NAME"
-        docker exec -i insight-db psql -U insight_admin -d postgres -c "CREATE DATABASE $DB_NAME;"
-        echo "✅ $DB_NAME 创建成功。"
+        docker exec -i insight-db psql -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME;"
+        echo "✅ 数据库 $DB_NAME 创建成功。"
     else
         echo "🆗 数据库 $DB_NAME 已存在，跳过。"
     fi
-done
+}
 
-echo "✨ 数据库环境检查完毕。"
+# --- 2. 为各个服务创建数据库 ---
+echo "🛠️  开始为各个服务初始化数据库..."
+
+# n8n 数据库
+create_db_if_not_exists "n8n_db"
+
+# NocoDB 数据库
+create_db_if_not_exists "nocodb_db"
+
+# Wiki.js 数据库
+create_db_if_not_exists "wikijs_db"
+
+# Teleport 数据库 (如果需要)
+create_db_if_not_exists "teleport_db"
+
+echo "✨ 所有服务数据库环境检查完毕。"
