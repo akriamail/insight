@@ -68,12 +68,13 @@ advanced_menu() {
         echo -e "1) 🛠️  新主机部署基础环境 (Init Env)"
         echo -e "2) ✨ 一键生产环境部署 (Prod Setup)"
         echo -e "3) 🧪 一键开发环境部署 (Dev Setup)"
-        echo -e "4) 🌐 Docker 镜像源配置 (Mirror Config)"
-        echo -e "5) ⚠️  全量数据恢复 (Restore)"
-        echo -e "6) 🗑️  重置系统 (危险 - Reset System)"
+        echo -e "4) 🧱 防火墙管理 (Firewall Management)"
+        echo -e "5) 🌐 Docker 镜像源配置 (Mirror Config)"
+        echo -e "6) ⚠️  全量数据恢复 (Restore)"
+        echo -e "7) 🗑️  重置系统 (危险 - Reset System)"
         echo -e "0) ⬅️  返回主菜单"
         echo -e "${BLUE}----------------------------------------${NC}"
-        read -p "请选择操作 [0-6]: " adv_choice
+        read -p "请选择操作 [0-7]: " adv_choice
 
         case $adv_choice in
             1) # 新主机部署基础环境
@@ -108,16 +109,19 @@ advanced_menu() {
                     echo -e "${GREEN}✨ 开发环境部署完成！${NC}"
                 fi
                 ;;
-            4) # Docker 镜像配置
+            4) # 防火墙管理
+                bash infra/scripts/07-firewall.sh
+                ;;
+            5) # Docker 镜像配置
                 configure_docker_mirrors
                 ;;
-            5) # 恢复
+            6) # 恢复
                 echo -e "${RED}警告：恢复将覆盖当前所有数据库和网关配置！${NC}"
                 if confirm_action; then
                     bash infra/scripts/05-restore.sh
                 fi
                 ;;
-            6) # 重置
+            7) # 重置
                 reset_system
                 ;;
             0) return ;;
