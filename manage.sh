@@ -65,43 +65,59 @@ advanced_menu() {
         echo -e "\n${BLUE}========================================${NC}"
         echo -e "${BLUE}    ⚙️  高级维护与部署 (Advanced)${NC}"
         echo -e "${BLUE}========================================${NC}"
-        echo -e "1) ✨ 一键生产环境部署 (Full Setup)"
-        echo -e "2) 🛠️  初始化基础环境 (Init Env)"
-        echo -e "3) 🌐 Docker 镜像源配置 (Mirror Config)"
-        echo -e "4) ⚠️  全量数据恢复 (Restore)"
-        echo -e "5) 🗑️  重置系统 (危险 - Clear Data)"
+        echo -e "1) 🛠️  新主机部署基础环境 (Init Env)"
+        echo -e "2) ✨ 一键生产环境部署 (Prod Setup)"
+        echo -e "3) 🧪 一键开发环境部署 (Dev Setup)"
+        echo -e "4) 🌐 Docker 镜像源配置 (Mirror Config)"
+        echo -e "5) ⚠️  全量数据恢复 (Restore)"
+        echo -e "6) 🗑️  重置系统 (危险 - Reset System)"
         echo -e "0) ⬅️  返回主菜单"
         echo -e "${BLUE}----------------------------------------${NC}"
-        read -p "请选择操作 [0-5]: " adv_choice
+        read -p "请选择操作 [0-6]: " adv_choice
 
         case $adv_choice in
-            1) # 全新服务器部署
-                echo -e "${YELLOW}提示：这将执行环境初始化、服务启动及数据库配置。${NC}"
+            1) # 新主机部署基础环境
+                echo -e "${YELLOW}提示：仅安装 Docker 等基础依赖并进行内核优化。适用于全新服务器。${NC}"
                 if confirm_action; then
-                    echo -e "${GREEN}1/3: 初始化基础环境...${NC}"
+                    bash infra/scripts/00-bootstrap.sh
+                fi
+                ;;
+            2) # 一键生产环境部署
+                echo -e "${YELLOW}提示：[生产环境] 默认禁用镜像加速器（适用于网络良好的境外主机）。${NC}"
+                if confirm_action; then
+                    sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env 2>/dev/null || true
+                    echo -e "${GREEN}1/3: 初始化环境...${NC}"
                     bash infra/scripts/00-bootstrap.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
                     echo -e "${GREEN}2/3: 启动服务...${NC}"
                     bash infra/scripts/02-startup.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
                     echo -e "${GREEN}3/3: 初始化数据库...${NC}"
                     bash infra/scripts/03-init-db.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}✨ 部署成功！${NC}"
+                    echo -e "${GREEN}✨ 生产环境部署完成！${NC}"
                 fi
                 ;;
-            2) # 初始化基础环境
+            3) # 一键开发环境部署
+                echo -e "${YELLOW}提示：[开发环境] 默认启用国内专属镜像加速器。${NC}"
                 if confirm_action; then
-                    bash infra/scripts/00-bootstrap.sh
+                    sed -i 's/USE_DOCKER_MIRRORS=false/USE_DOCKER_MIRRORS=true/g' .env 2>/dev/null || true
+                    echo -e "${GREEN}1/3: 初始化环境...${NC}"
+                    bash infra/scripts/00-bootstrap.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
+                    echo -e "${GREEN}2/3: 启动服务...${NC}"
+                    bash infra/scripts/02-startup.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
+                    echo -e "${GREEN}3/3: 初始化数据库...${NC}"
+                    bash infra/scripts/03-init-db.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
+                    echo -e "${GREEN}✨ 开发环境部署完成！${NC}"
                 fi
                 ;;
-            3) # Docker 镜像配置
+            4) # Docker 镜像配置
                 configure_docker_mirrors
                 ;;
-            4) # 恢复
+            5) # 恢复
                 echo -e "${RED}警告：恢复将覆盖当前所有数据库和网关配置！${NC}"
                 if confirm_action; then
                     bash infra/scripts/05-restore.sh
                 fi
                 ;;
-            5) # 重置
+            6) # 重置
                 reset_system
                 ;;
             0) return ;;
