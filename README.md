@@ -60,3 +60,6 @@ Project Team Insight Infrastructure 是一个基于 Docker Compose 部署的集�
 *   **安全确认**: 危险操作均设有 `(y/n)` 二次确认。
 *   **密码安全**: 部署后请务必通过 `manage.sh` 检查并修改默认的占位符密码。
 *   **备份恢复**: 建议定期执行备份，并在执行重大变更前创建快照。
+
+## Bug 修复记录
+所有已修复的 Bug 及版本更新记录请查看 [BUGFIX.md](./BUGFIX.md)。
