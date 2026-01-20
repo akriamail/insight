@@ -10,9 +10,9 @@ services:
       DB_TYPE: postgres
       DB_HOST: ${DB_HOST:-insight-db}
       DB_PORT: ${DB_PORT:-5432}
-      DB_USER: ${WIKIJS_DB_USER:-wikijs}
+      DB_USER: ${DB_USER:-insight_admin}
       DB_PASS: ${DB_PASSWORD}
-      DB_NAME: wikijs
+      DB_NAME: wikijs_db
     volumes:
       - /opt/insight/data/06-knowledge:/wiki/storage
     networks:

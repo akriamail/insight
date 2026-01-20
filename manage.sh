@@ -18,6 +18,8 @@ confirm_action() {
     return 0
 }
 
+source infra/scripts/01-configure-docker-mirrors.sh
+
 # 清空所有数据（不删除镜像）
 clear_all_data() {
     echo -e "${RED}⚠️  危险操作！即将停止所有容器，移除所有网络，并删除所有持久化数据！${NC}"
@@ -50,9 +52,10 @@ while true; do
     echo -e "7) 🛠️  初始化基础环境 (Init Base Env)"
     echo -e "8) ✨ 全新服务器部署 (Full Setup)"
     echo -e "9) 🗑️  清空所有数据 (Clear All Data)"
+    echo -e "10) 🌐 Docker 镜像源配置 (Docker Mirror Config)"
     echo -e "0) 🚪 退出 (Exit)"
     echo -e "${BLUE}----------------------------------------${NC}"
-    read -p "请选择操作 [0-9]: " choice
+    read -p "请选择操作 [0-10]: " choice
 
     case $choice in
         1)
@@ -111,6 +114,11 @@ while true; do
             ;;
         9) # 清空所有数据
             clear_all_data
+            ;;
+        10) # Docker 镜像源配置
+            if confirm_action; then
+                configure_docker_mirrors
+            fi
             ;;
         0) # 退出
             echo "👋 祝 Project Team 运行愉快，再见！"

@@ -4,7 +4,11 @@ services:
     container_name: insight-nocodb
     restart: always
     environment:
-      NC_DB: "pg://${DB_HOST:-insight-db}:${DB_PORT:-5432}?u=${DB_USER:-insight_admin}&p=${DB_PASSWORD}&d=nocodb_db"
+      NC_PG_HOST: ${DB_HOST:-insight-db}
+      NC_PG_PORT: ${DB_PORT:-5432}
+      NC_PG_USER: ${DB_USER:-insight_admin}
+      NC_PG_PASSWORD: ${DB_PASSWORD}
+      NC_PG_DATABASE: nocodb_db
     volumes:
       - /opt/insight/data/05-data-viz:/usr/app/data
     networks:

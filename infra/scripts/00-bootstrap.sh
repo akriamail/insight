@@ -80,6 +80,8 @@ select_apt_mirror() {
 
 # --- End Helper functions ---
 
+source infra/scripts/01-configure-docker-mirrors.sh
+
 echo "Starting base dependency installation..."
 
 # --- Conceptual APT mirror selection ---
@@ -99,6 +101,7 @@ install_package_if_not_exists lsb-release
 install_package_if_not_exists software-properties-common
 install_package_if_not_exists ufw
 install_package_if_not_exists htop
+install_package_if_not_exists jq
 
 # 2. Automatically configure 4G Swap (to alleviate 8G memory pressure)
 echo "Configuring 4G Swap partition..."
@@ -139,6 +142,8 @@ if ! command -v docker &> /dev/null; then
 else
     echo "Docker is already installed, skipping."
 fi
+
+configure_docker_mirrors # Call the function to set up Docker mirrors
 
 # 4. Kernel tuning
 echo "Optimizing network connection and kernel parameters..."
