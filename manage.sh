@@ -23,6 +23,42 @@ confirm_action() {
     return 0
 }
 
+# 检查 .env 是否已配置
+check_env_configured() {
+    if [ ! -f .env ]; then
+        echo -e "${YELLOW}📝 检测到尚未创建 .env 配置文件。正在从模板生成...${NC}"
+        cp .env.example .env
+        echo -e "${RED}⚠️  请注意：已生成默认 .env，但其中的域名和密码均为占位符！${NC}"
+        edit_env_file
+        return 1
+    fi
+    
+    # 检查是否包含默认的占位符密码
+    if grep -q "change_me_please_2026" .env; then
+        echo -e "${RED}❌ 警告：你还在使用默认的占位符密码！这非常不安全。${NC}"
+        read -p "是否现在修改 .env 配置文件? (y/n): " fix_now
+        if [[ $fix_now == [yY] ]]; then
+            edit_env_file
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# 编辑 .env 文件
+edit_env_file() {
+    echo -e "${BLUE}正在打开编辑器修改 .env 配置文件... (Ctrl+O 保存, Ctrl+X 退出)${NC}"
+    # 优先使用 nano, 其次 vim, 最后 vi
+    if command -v nano &> /dev/null; then
+        nano .env
+    elif command -v vim &> /dev/null; then
+        vim .env
+    else
+        vi .env
+    fi
+    echo -e "${GREEN}✅ .env 配置文件已保存。${NC}"
+}
+
 # 状态与监控报告
 show_status_report() {
     echo -e "\n${GREEN}📊 [1/2] 容器运行状态:${NC}"
@@ -69,12 +105,13 @@ advanced_menu() {
         echo -e "2) ✨ 一键生产环境部署 (Prod Setup)"
         echo -e "3) 🧪 一键开发环境部署 (Dev Setup)"
         echo -e "4) 🧱 防火墙管理 (Firewall Management)"
-        echo -e "5) 🌐 Docker 镜像源配置 (Mirror Config)"
-        echo -e "6) ⚠️  全量数据恢复 (Restore)"
-        echo -e "7) 🗑️  重置系统 (危险 - Reset System)"
+        echo -e "5) 📝 编辑环境变量 (Edit .env)"
+        echo -e "6) 🌐 Docker 镜像源配置 (Mirror Config)"
+        echo -e "7) ⚠️  全量数据恢复 (Restore)"
+        echo -e "8) 🗑️  重置系统 (危险 - Reset System)"
         echo -e "0) ⬅️  返回主菜单"
         echo -e "${BLUE}----------------------------------------${NC}"
-        read -p "请选择操作 [0-7]: " adv_choice
+        read -p "请选择操作 [0-8]: " adv_choice
 
         case $adv_choice in
             1) # 新主机部署基础环境
@@ -84,6 +121,7 @@ advanced_menu() {
                 fi
                 ;;
             2) # 一键生产环境部署
+                if ! check_env_configured; then break; fi
                 echo -e "${YELLOW}提示：[生产环境] 默认禁用镜像加速器（适用于网络良好的境外主机）。${NC}"
                 if confirm_action; then
                     sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env 2>/dev/null || true
@@ -97,6 +135,7 @@ advanced_menu() {
                 fi
                 ;;
             3) # 一键开发环境部署
+                if ! check_env_configured; then break; fi
                 echo -e "${YELLOW}提示：[开发环境] 默认启用国内专属镜像加速器。${NC}"
                 if confirm_action; then
                     sed -i 's/USE_DOCKER_MIRRORS=false/USE_DOCKER_MIRRORS=true/g' .env 2>/dev/null || true
@@ -106,22 +145,25 @@ advanced_menu() {
                     bash infra/scripts/02-startup.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
                     echo -e "${GREEN}3/3: 初始化数据库...${NC}"
                     bash infra/scripts/03-init-db.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}✨ 开发环境部署完成！${NC}"
+                    echo -e "${GREEN}✨ 开发环境部署成功！${NC}"
                 fi
                 ;;
             4) # 防火墙管理
                 bash infra/scripts/07-firewall.sh
                 ;;
-            5) # Docker 镜像配置
+            5) # 编辑环境变量
+                edit_env_file
+                ;;
+            6) # Docker 镜像配置
                 configure_docker_mirrors
                 ;;
-            6) # 恢复
+            7) # 恢复
                 echo -e "${RED}警告：恢复将覆盖当前所有数据库和网关配置！${NC}"
                 if confirm_action; then
                     bash infra/scripts/05-restore.sh
                 fi
                 ;;
-            7) # 重置
+            8) # 重置
                 reset_system
                 ;;
             0) return ;;
