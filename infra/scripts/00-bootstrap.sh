@@ -29,14 +29,65 @@ check_and_add_sysctl_param() {
     fi
 }
 
-# 概念性函数：选择最快的 APT 镜像源 (需要根据实际情况实现网络探测和用户选择逻辑)
+# 智能选择 APT 镜像源
 select_apt_mirror() {
-    echo "🌐 (概念性) 正在尝试选择最快的 APT 镜像源..."
-    # 实际实现中，这里可以包含：
-    # 1. ping 不同的镜像源，比较响应时间
-    # 2. 根据地理位置或用户输入，提供源选择
-    # 3. 替换 /etc/apt/sources.list
-    echo "💡 提示: 本功能需要根据您的网络环境手动配置或进一步完善，目前使用默认源。"
+    echo "🌐 正在评估 APT 镜像源速度..."
+
+    # 定义常用镜像源 (国内 & 国外)
+    declare -A MIRRORS
+    MIRRORS["官方源"]="http://archive.ubuntu.com/ubuntu/"
+    MIRRORS["阿里云"]="http://mirrors.aliyun.com/ubuntu/"
+    MIRRORS["清华大学"]="http://mirrors.tuna.tsinghua.edu.cn/ubuntu/"
+    MIRRORS["腾讯云"]="http://mirrors.tencent.com/ubuntu/"
+    # ... 可以根据需要添加更多
+
+    FASTEST_MIRROR=""
+    FASTEST_TIME=99999
+
+    echo "--- 测试镜像源速度 ---"
+    for NAME in "${!MIRRORS[@]}"; do
+        URL="${MIRRORS[$NAME]}"
+        echo -n "   测试 $NAME ($URL)... "
+        # 使用 curl 测试连接速度，并提取时间
+        # -o /dev/null: 不输出文件
+        # -s: 静默模式
+        # -w "%{time_total}": 仅输出总时间
+        # --max-time 5: 最长等待 5 秒
+        TIME=$(curl -o /dev/null -s -w "%{time_total}" --max-time 5 "$URL" || echo "timeout")
+
+        if [[ "$TIME" != "timeout" && -n "$TIME" ]]; then
+            echo "耗时: ${TIME}s"
+            # 比较时间，找到最快源
+            if (( $(echo "$TIME < $FASTEST_TIME" | bc -l) )); then
+                FASTEST_TIME="$TIME"
+                FASTEST_MIRROR="$URL"
+            fi
+        else
+            echo "超时或失败"
+        fi
+    done
+    echo "----------------------"
+
+    if [ -n "$FASTEST_MIRROR" ]; then
+        echo -e "${GREEN}✨ 检测到最快镜像源: $FASTEST_MIRROR (耗时: ${FASTEST_TIME}s)${NC}"
+        read -p "是否替换为最快的镜像源？(y/n): " confirm
+        if [[ $confirm == [yY] ]]; then
+            echo "备份原有 sources.list..."
+            sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+            echo "正在替换 sources.list 为 $FASTEST_MIRROR..."
+            CODE_NAME=$(lsb_release -sc)
+            NEW_SOURCES_LIST="deb ${FASTEST_MIRROR} ${CODE_NAME} main restricted universe multiverse\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-updates main restricted universe multiverse\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-backports main restricted universe multiverse\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-security main restricted universe multiverse\n"
+            echo -e "$NEW_SOURCES_LIST" | sudo tee /etc/apt/sources.list > /dev/null
+            echo -e "${GREEN}✅ APT 镜像源已更新。${NC}"
+        else
+            echo -e "${YELLOW} APT 镜像源未更改，继续使用默认源。${NC}"
+        fi
+    else
+        echo -e "${RED}❌ 未能检测到可用的快速镜像源，请检查网络或手动配置。${NC}"
+    fi
 }
 
 # --- 辅助函数结束 ---
@@ -76,11 +127,25 @@ fi
 echo "🐳 安装 Docker..."
 if ! command -v docker &> /dev/null; then
     echo "➕ 正在安装 Docker..."
+
+    # 尝试下载 Docker GPG 密钥
+    echo "🌐 正在下载 Docker GPG 密钥..."
     sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    if ! curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg; then
+        echo -e "${RED}❌ Docker GPG 密钥下载失败！请检查网络连接或尝试手动下载。${NC}"
+        echo "💡 尝试使用国内镜像站的 GPG 密钥下载地址，例如阿里云、腾讯云等。"
+        # 可以考虑在这里添加用户交互，引导用户替换源
+        exit 1
+    fi
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    # 尝试添加 Docker APT 源
+    echo "🌐 正在添加 Docker APT 源..."
+    if ! echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null; then
+        echo -e "${RED}❌ Docker APT 源添加失败！请检查网络连接或尝试手动添加。${NC}"
+        echo "💡 尝试使用国内 Docker 镜像源，例如阿里云、腾讯云等。"
+        exit 1
+    fi
 
     sudo apt-get update
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
