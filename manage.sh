@@ -23,6 +23,25 @@ confirm_action() {
     return 0
 }
 
+# 强行创建 n8n 管理员用户
+create_n8n_user() {
+    echo -e "\n${BLUE}👤 正在准备强行创建 n8n 管理员用户...${NC}"
+    read -p "请输入邮箱: " email
+    read -p "请输入密码 (至少8位): " password
+    read -p "请输入名 (FirstName): " fname
+    read -p "请输入姓 (LastName): " lname
+    
+    echo -e "${YELLOW}正在容器中执行创建命令...${NC}"
+    # 尝试使用 n8n 官方 CLI
+    docker exec -it insight-n8n n8n user:create --email "$email" --password "$password" --firstName "$fname" --lastName "$lname" --role admin
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ 用户创建成功！请尝试登录。${NC}"
+    else
+        echo -e "${RED}❌ 创建失败。请确保 n8n 容器正在运行且数据库连接正常。${NC}"
+    fi
+}
+
 # 检查 .env 是否已配置
 check_env_configured() {
     if [ ! -f .env ]; then
@@ -33,7 +52,6 @@ check_env_configured() {
         return 1
     fi
     
-    # 检查是否包含默认的占位符密码
     if grep -q "change_me_please_2026" .env; then
         echo -e "${RED}❌ 警告：你还在使用默认的占位符密码！这非常不安全。${NC}"
         read -p "是否现在修改 .env 配置文件? (y/n): " fix_now
@@ -48,7 +66,6 @@ check_env_configured() {
 # 编辑 .env 文件
 edit_env_file() {
     echo -e "${BLUE}正在打开编辑器修改 .env 配置文件... (Ctrl+O 保存, Ctrl+X 退出)${NC}"
-    # 优先使用 nano, 其次 vim, 最后 vi
     if command -v nano &> /dev/null; then
         nano .env
     elif command -v vim &> /dev/null; then
@@ -56,7 +73,7 @@ edit_env_file() {
     else
         vi .env
     fi
-    echo -e "${GREEN}✅ .env 配置文件已保存。${NC}"
+    echo -e "${GREEN}✅ .env 配置文件已保存。建议重启服务以应用配置。${NC}"
 }
 
 # 状态与监控报告
@@ -106,66 +123,34 @@ advanced_menu() {
         echo -e "3) 🧪 一键开发环境部署 (Dev Setup)"
         echo -e "4) 🧱 防火墙管理 (Firewall Management)"
         echo -e "5) 📝 编辑环境变量 (Edit .env)"
-        echo -e "6) 🌐 Docker 镜像源配置 (Mirror Config)"
-        echo -e "7) ⚠️  全量数据恢复 (Restore)"
-        echo -e "8) 🗑️  重置系统 (危险 - Reset System)"
+        echo -e "6) 👤 强行创建 n8n 管理员 (Create n8n User)"
+        echo -e "7) 🌐 Docker 镜像源配置 (Mirror Config)"
+        echo -e "8) ⚠️  全量数据恢复 (Restore)"
+        echo -e "9) 🗑️  重置系统 (危险 - Reset System)"
         echo -e "0) ⬅️  返回主菜单"
         echo -e "${BLUE}----------------------------------------${NC}"
-        read -p "请选择操作 [0-8]: " adv_choice
+        read -p "请选择操作 [0-9]: " adv_choice
 
         case $adv_choice in
-            1) # 新主机部署基础环境
-                echo -e "${YELLOW}提示：仅安装 Docker 等基础依赖并进行内核优化。适用于全新服务器。${NC}"
-                if confirm_action; then
-                    bash infra/scripts/00-bootstrap.sh
-                fi
-                ;;
-            2) # 一键生产环境部署
+            1) bash infra/scripts/00-bootstrap.sh ;;
+            2) 
                 if ! check_env_configured; then break; fi
-                echo -e "${YELLOW}提示：[生产环境] 默认禁用镜像加速器（适用于网络良好的境外主机）。${NC}"
-                if confirm_action; then
-                    sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env 2>/dev/null || true
-                    echo -e "${GREEN}1/3: 初始化环境...${NC}"
-                    bash infra/scripts/00-bootstrap.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}2/3: 启动服务...${NC}"
-                    bash infra/scripts/02-startup.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}3/3: 初始化数据库...${NC}"
-                    bash infra/scripts/03-init-db.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}✨ 生产环境部署完成！${NC}"
-                fi
+                sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env 2>/dev/null || true
+                echo -e "${GREEN}正在启动生产环境部署...${NC}"
+                bash infra/scripts/00-bootstrap.sh && bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh
                 ;;
-            3) # 一键开发环境部署
+            3) 
                 if ! check_env_configured; then break; fi
-                echo -e "${YELLOW}提示：[开发环境] 默认启用国内专属镜像加速器。${NC}"
-                if confirm_action; then
-                    sed -i 's/USE_DOCKER_MIRRORS=false/USE_DOCKER_MIRRORS=true/g' .env 2>/dev/null || true
-                    echo -e "${GREEN}1/3: 初始化环境...${NC}"
-                    bash infra/scripts/00-bootstrap.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}2/3: 启动服务...${NC}"
-                    bash infra/scripts/02-startup.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}3/3: 初始化数据库...${NC}"
-                    bash infra/scripts/03-init-db.sh || { echo -e "${RED}❌ 失败${NC}"; break; }
-                    echo -e "${GREEN}✨ 开发环境部署成功！${NC}"
-                fi
+                sed -i 's/USE_DOCKER_MIRRORS=false/USE_DOCKER_MIRRORS=true/g' .env 2>/dev/null || true
+                echo -e "${GREEN}正在启动开发环境部署...${NC}"
+                bash infra/scripts/00-bootstrap.sh && bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh
                 ;;
-            4) # 防火墙管理
-                bash infra/scripts/07-firewall.sh
-                ;;
-            5) # 编辑环境变量
-                edit_env_file
-                ;;
-            6) # Docker 镜像配置
-                configure_docker_mirrors
-                ;;
-            7) # 恢复
-                echo -e "${RED}警告：恢复将覆盖当前所有数据库和网关配置！${NC}"
-                if confirm_action; then
-                    bash infra/scripts/05-restore.sh
-                fi
-                ;;
-            8) # 重置
-                reset_system
-                ;;
+            4) bash infra/scripts/07-firewall.sh ;;
+            5) edit_env_file ;;
+            6) create_n8n_user ;;
+            7) configure_docker_mirrors ;;
+            8) bash infra/scripts/05-restore.sh ;;
+            9) reset_system ;;
             0) return ;;
             *) echo -e "${RED}❌ 无效选择${NC}" ;;
         esac
@@ -188,31 +173,13 @@ main_menu() {
         read -p "请选择操作 [0-5]: " choice
 
         case $choice in
-            1)
-                bash infra/scripts/02-startup.sh
-                bash infra/scripts/03-init-db.sh
-                ;;
-            2)
-                if confirm_action; then
-                    bash infra/scripts/06-shutdown.sh
-                fi
-                ;;
-            3)
-                show_status_report
-                ;;
-            4)
-                bash infra/scripts/04-backup.sh
-                ;;
-            5)
-                advanced_menu
-                ;;
-            0)
-                echo "👋 祝 Project Team 运行愉快，再见！"
-                exit 0
-                ;;
-            *)
-                echo -e "${RED}❌ 无效选择，请重新输入。${NC}"
-                ;;
+            1) bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh ;;
+            2) if confirm_action; then bash infra/scripts/06-shutdown.sh; fi ;;
+            3) show_status_report ;;
+            4) bash infra/scripts/04-backup.sh ;;
+            5) advanced_menu ;;
+            0) echo "👋 再见！"; exit 0 ;;
+            *) echo -e "${RED}❌ 无效选择${NC}" ;;
         esac
     done
 }
