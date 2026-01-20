@@ -4,14 +4,14 @@ services:
     container_name: insight-gateway
     restart: always
     ports:
-      - '80:80'
-      - '443:443'
-      - '81:81'
+      - '${NGINX_PROXY_MANAGER_HTTP_PORT:-80}:80'
+      - '${NGINX_PROXY_MANAGER_HTTPS_PORT:-443}:443'
+      - '${NGINX_PROXY_MANAGER_ADMIN_PORT:-81}:81'
     volumes:
-      - /opt/insight-ai/01-gateway/data:/data
-      - /opt/insight-ai/01-gateway/letsencrypt:/etc/letsencrypt
+      - /opt/insight/data/01-gateway:/data
+      - /opt/insight/data/01-gateway/letsencrypt:/etc/letsencrypt
     networks:
-      - insight-net
+      - ${DOCKER_NETWORK_NAME:-insight-net}
     deploy:
       resources:
         limits:

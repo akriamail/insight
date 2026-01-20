@@ -12,8 +12,9 @@ Project Team Insight Infrastructure 是一个基于 Docker Compose 部署的集�
 *   **全面的系统管理:**
     *   **一键初始化:** 自动化安装 Docker 等运行环境。
     *   **服务生命周期:** 方便地启动、停止所有容器化服务。
-    *   **实时监控:** 提供 CPU、内存、磁盘及 Docker 容器资源的实时监控报告。
+    *   **实时监控:** 提供 CPU、内存、磁盘占用及 Docker 容器资源的实时监控报告。
     *   **全量备份与恢复:** 实现 Nginx Proxy Manager 配置和所有 PostgreSQL 数据库的全量备份，并支持一键恢复到最新状态。
+    *   **一键清空数据:** 快速停止所有容器、移除网络并删除持久化数据，方便重新部署和测试。
 *   **配置与数据分离:** 通过清晰的目录结构和 Docker 卷挂载，确保业务数据与应用配置独立管理，方便升级和迁移。
 
 ## 技术栈
@@ -31,6 +32,7 @@ Project Team Insight Infrastructure 是一个基于 Docker Compose 部署的集�
 ├── manage.sh              # 🚀 唯一交互式入口 (按数字键操作)
 ├── README.md              # 本项目操作说明
 ├── .gitignore             # Git 忽略配置
+├── .env.example           # 环境变量配置示例文件
 ├── data/                  # [生产数据] 实际业务数据挂载点
 │   ├── 01-gateway/        # Nginx Proxy Manager 配置文件持久化
 │   ├── 02-security/       # (预留) 安全服务数据
@@ -69,13 +71,48 @@ cd /opt/insight
 **菜单功能一览：**
 *   **1) 🚀 启动服务 (Up):** 拉起所有容器并自动初始化数据库。
 *   **2) 🛑 停止服务 (Down):** (需确认) 安全移除所有容器。
-*   **3) 📊 容器状态 (Status):** 快速查看当前业务运行详情。
+*   **3) 📊 容器状态 (Status):** 快速查看当前业务运行详情，包含镜像名称、状态和端口信息。要查看更详细的容器资源使用情况 (CPU/内存/网络)，请选择选项 4) 🌡️  系统监控 (Monitor)。
 *   **4) 🌡️ 系统监控 (Monitor):** 实时查看 CPU、内存、磁盘占用及容器资源使用。
 *   **5) 📂 执行备份 (Backup):** 生成全量数据包至 `exports/`。
 *   **6) ⚠️ 全量恢复 (Restore):** (需确认) 从备份包一键还原所有数据。
 *   **7) 🛠️ 初始化基础环境 (Init Base Env):** (需确认) 仅安装 Docker 等基础环境并进行内核优化。
 *   **8) ✨ 全新服务器部署 (Full Setup):** (需确认) 整合选项 7、选项 1 和数据库初始化，一键完成所有部署。
-*   **9) 🚪 退出 (Exit):** 退出管理系统。
+*   **9) 🗑️ 清空所有数据 (Clear All Data):** (需确认) 快速停止所有容器、移除网络并删除持久化数据 (保留 Docker 镜像)。
+*   **0) 🚪 退出 (Exit):** 退出管理系统。
+
+## 环境变量配置
+为了方便管理和适应不同部署环境，本项目支持通过 `.env` 文件来配置各项参数。
+**请在项目根目录 `/opt/insight/` 下创建 `.env` 文件。**
+
+你可以复制 `.env.example` 中的内容作为起点，并根据你的需求进行修改。
+**示例 `.env` 文件内容 (`/opt/insight/.env.example`):
+```
+# .env.example - Insight 基础设施的环境变量配置示例
+
+# 数据库配置
+DB_PASSWORD=insight_password_2024
+
+# Docker 网络配置
+DOCKER_NETWORK_NAME=insight-net
+
+# 服务端口配置 (示例 - 根据需要调整)
+# NGINX_PROXY_MANAGER_HTTP_PORT=80  # Nginx Proxy Manager HTTP 端口
+# NGINX_PROXY_MANAGER_HTTPS_PORT=443 # Nginx Proxy Manager HTTPS 端口
+# NGINX_PROXY_MANAGER_ADMIN_PORT=81 # Nginx Proxy Manager 后台管理端口
+# N8N_PORT=5678 # n8n 服务端口
+# NOCODB_PORT=8080 # NocoDB 服务端口
+# WIKIJS_PORT=3000 # Wiki.js 服务端口
+
+# 服务域名配置 (示例 - 根据需要调整)
+# N8N_HOST=n8n.yourdomain.com # n8n 服务域名
+# NOCODB_HOST=nocodb.yourdomain.com # NocoDB 服务域名
+# WIKIJS_HOST=wiki.yourdomain.com # Wiki.js 服务域名
+
+# Docker 镜像加速器配置
+# Set to 'false' to disable Docker registry mirrors (e.g., for overseas hosts)
+USE_DOCKER_MIRRORS=true
+```
+**配置生效：** 更改 `.env` 文件后，通常需要重启相关的 Docker Compose 服务才能使新配置生效。你可以使用 `manage.sh` 中的 `9) 🗑️ 清空所有数据 (Clear All Data)` 然后 `8) ✨ 全新服务器部署 (Full Setup)` 来快速应用新的配置。
 
 ## 维护规范
 

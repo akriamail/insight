@@ -18,6 +18,25 @@ confirm_action() {
     return 0
 }
 
+# 清空所有数据（不删除镜像）
+clear_all_data() {
+    echo -e "${RED}⚠️  危险操作！即将停止所有容器，移除所有网络，并删除所有持久化数据！${NC}"
+    if confirm_action; then
+        echo -e "${YELLOW}🛑 正在停止并移除所有 Docker 容器...${NC}"
+        docker stop $(docker ps -aq) 2>/dev/null || true
+        docker rm $(docker ps -aq) 2>/dev/null || true
+
+        echo -e "${YELLOW}🌐 正在移除所有 Docker 网络...${NC}"
+        # 考虑到 insight-net 是外部网络，这里可以尝试移除所有自定义网络
+        docker network ls --format "{{.Name}}" | grep -E "insight-net" | xargs -r docker network rm 2>/dev/null || true
+
+        echo -e "${YELLOW}🗑️  正在删除所有持久化数据目录 (/opt/insight/data)...${NC}"
+        rm -rf /opt/insight/data # 由于你目前是root用户，不再需要sudo
+
+        echo -e "${GREEN}✅ 所有数据已清空 (Docker 镜像保留)。${NC}"
+    fi
+}
+
 while true; do
     echo -e "\n${BLUE}========================================${NC}"
     echo -e "${BLUE}    Project Team 基础设施管理系统${NC}"
@@ -30,7 +49,8 @@ while true; do
     echo -e "6) ⚠️  全量恢复 (Restore)"
     echo -e "7) 🛠️  初始化基础环境 (Init Base Env)"
     echo -e "8) ✨ 全新服务器部署 (Full Setup)"
-    echo -e "9) 🚪 退出 (Exit)"
+    echo -e "9) 🗑️  清空所有数据 (Clear All Data)"
+    echo -e "0) 🚪 退出 (Exit)"
     echo -e "${BLUE}----------------------------------------${NC}"
     read -p "请选择操作 [0-9]: " choice
 
@@ -46,7 +66,10 @@ while true; do
             ;;
         3)
             echo -e "\n${GREEN}📊 当前容器状态:${NC}"
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo -e "${BLUE}----------------------------------------------------------------------------------------------------${NC}"
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            echo -e "${BLUE}----------------------------------------------------------------------------------------------------${NC}"
+            echo -e "${YELLOW}提示：要查看更详细的容器资源使用情况 (CPU/内存/网络)，请选择选项 4) 🌡️  系统监控 (Monitor)。${NC}"
             ;;
         4)
             echo -e "\n${GREEN}🌡️  服务器健康报告:${NC}"
@@ -86,7 +109,10 @@ while true; do
                 echo -e "${GREEN}✨ 全新服务器部署完成！${NC}"
             fi
             ;;
-        9)
+        9) # 清空所有数据
+            clear_all_data
+            ;;
+        0) # 退出
             echo "👋 祝 Project Team 运行愉快，再见！"
             exit 0
             ;;

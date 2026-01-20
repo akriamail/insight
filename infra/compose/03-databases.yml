@@ -7,12 +7,9 @@ services:
       POSTGRES_USER: insight_admin
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      # 将数据持久化到我们之前创建的 03-databases 目录
-      - /opt/insight-ai/03-databases/data:/var/lib/postgresql/data
-      # 将刚才写的初始化 SQL 挂载进去
-      - /opt/insight-ai/insight-node-a-init/configs/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - /opt/insight/data/03-databases/postgres:/var/lib/postgresql/data
     networks:
-      - insight-net
+      - ${DOCKER_NETWORK_NAME:-insight-net}
     deploy:
       resources:
         limits:

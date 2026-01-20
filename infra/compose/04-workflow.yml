@@ -5,23 +5,23 @@ services:
     restart: always
     # 直接引用环境文件
     environment:
-      - N8N_HOST=flow.insight.akria.net
-      - N8N_PORT=5678
+      - N8N_HOST=${N8N_HOST:-flow.insight.akria.net}
+      - N8N_PORT=${N8N_PORT:-5678}
       - N8N_PROTOCOL=https
       - NODE_ENV=production
-      - WEBHOOK_URL=https://flow.insight.akria.net/
+      - WEBHOOK_URL=https://${N8N_HOST:-flow.insight.akria.net}/
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=insight-db
-      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_HOST=${DB_HOST:-insight-db}
+      - DB_POSTGRESDB_PORT=${DB_PORT:-5432}
       - DB_POSTGRESDB_DATABASE=n8n_db
       - DB_POSTGRESDB_USER=insight_admin
-      - DB_POSTGRESDB_PASSWORD='z1a2q3W4!@#'
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
       - GENERIC_TIMEZONE=Asia/Shanghai
       - TZ=Asia/Shanghai
     volumes:
-      - /opt/insight-ai/04-workflow/data:/home/node/.n8n
+      - /opt/insight/data/04-workflow:/home/node/.n8n
     networks:
-      - insight-net
+      - ${DOCKER_NETWORK_NAME:-insight-net}
 
 networks:
   insight-net:
