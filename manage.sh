@@ -123,23 +123,11 @@ advanced_menu() {
         echo -e "9) ⚠️  全量数据恢复"
         echo -e "10) 🗑️  重置系统 (危险)"
         echo -e "11) 🎯 安装 Portainer (Web 管理界面)"
-        echo -e "12) 🔧 修复 Docker 网络问题"
         echo -e "0) ⬅️  返回主菜单"
-        read -p "选择 [0-12]: " adv_choice
+        read -p "选择 [0-11]: " adv_choice
         case $adv_choice in
             1) bash infra/scripts/00-bootstrap.sh ;;
-            2) if check_env_configured; then 
-                   echo -e "${YELLOW}⚠️  生产环境部署：将禁用 Docker 镜像加速器${NC}"
-                   echo -e "${YELLOW}   如果无法访问 docker.io，镜像拉取可能失败${NC}"
-                   echo -e "${YELLOW}   建议：如果网络受限，请使用开发环境部署（选项 3）${NC}"
-                   read -p "是否继续? (y/n): " confirm
-                   if [[ $confirm == [yY] ]]; then
-                       sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env
-                       bash infra/scripts/00-bootstrap.sh && bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh
-                   else
-                       echo -e "${YELLOW}操作已取消。${NC}"
-                   fi
-               fi ;;
+            2) if check_env_configured; then sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env; bash infra/scripts/00-bootstrap.sh && bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh; fi ;;
             3) if check_env_configured; then sed -i 's/USE_DOCKER_MIRRORS=false/USE_DOCKER_MIRRORS=true/g' .env; bash infra/scripts/00-bootstrap.sh && bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh; fi ;;
             4) bash infra/scripts/07-firewall.sh ;;
             5) edit_env_file ;;
@@ -149,7 +137,6 @@ advanced_menu() {
             9) bash infra/scripts/05-restore.sh ;;
             10) reset_system ;;
             11) bash infra/scripts/08-install-portainer.sh ;;
-            12) bash infra/scripts/10-fix-docker-network.sh ;;
             0) return ;;
             *) echo "❌ 无效选择" ;;
         esac
