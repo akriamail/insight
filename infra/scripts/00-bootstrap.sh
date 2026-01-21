@@ -32,16 +32,29 @@ check_and_add_sysctl_param() {
 # Smartly select APT mirror source
 select_apt_mirror() {
     echo "Evaluating APT mirror source speed..."
+    
+    # Detect architecture
+    ARCH=$(dpkg --print-architecture)
+    echo "Detected architecture: $ARCH"
 
     # Define common mirror sources (domestic & international)
     declare -A MIRRORS
     MIRRORS["Official"]="http://archive.ubuntu.com/ubuntu/"
-    MIRRORS["Aliyun"]="http://mirrors.aliyun.com/ubuntu/"
     MIRRORS["Tsinghua"]="http://mirrors.tuna.tsinghua.edu.cn/ubuntu/"
     MIRRORS["Tencent"]="http://mirrors.tencent.com/ubuntu/"
+    
+    # For ARM64, avoid Aliyun (incomplete support) and prefer official or well-supported mirrors
+    if [ "$ARCH" = "arm64" ]; then
+        echo "⚠️  ARM64 架构检测：优先使用官方源或支持 ARM64 的镜像源"
+        # For ARM64, use ports.ubuntu.com as fallback
+        MIRRORS["Official-Ports"]="http://ports.ubuntu.com/ubuntu-ports/"
+    else
+        MIRRORS["Aliyun"]="http://mirrors.aliyun.com/ubuntu/"
+    fi
 
     FASTEST_MIRROR=""
     FASTEST_TIME=99999
+    VALID_MIRRORS=()
 
     echo "--- Testing mirror source speed ---"
     for NAME in "${!MIRRORS[@]}"; do
@@ -51,6 +64,7 @@ select_apt_mirror() {
 
         if [[ "$TIME" != "timeout" && -n "$TIME" ]]; then
             echo "Time: ${TIME}s"
+            VALID_MIRRORS+=("$NAME|$URL|$TIME")
             if (( $(echo "$TIME < $FASTEST_TIME" | bc -l) )); then
                 FASTEST_TIME="$TIME"
                 FASTEST_MIRROR="$URL"
@@ -61,20 +75,52 @@ select_apt_mirror() {
     done
     echo "----------------------"
 
+    # For ARM64, verify the selected mirror actually supports ARM64 before using it
+    if [ "$ARCH" = "arm64" ] && [ -n "$FASTEST_MIRROR" ]; then
+        # Test if the mirror has ARM64 packages
+        CODE_NAME=$(lsb_release -sc)
+        TEST_URL="${FASTEST_MIRROR}dists/${CODE_NAME}/main/binary-arm64/"
+        if ! curl -s --head "$TEST_URL" | grep -q "200 OK"; then
+            echo "⚠️  检测到所选镜像源可能不支持 ARM64，切换到官方源..."
+            # Use official ports source for ARM64
+            if [ -n "${MIRRORS[Official-Ports]}" ]; then
+                FASTEST_MIRROR="${MIRRORS[Official-Ports]}"
+                FASTEST_TIME=99999
+            else
+                FASTEST_MIRROR="http://ports.ubuntu.com/ubuntu-ports/"
+            fi
+        fi
+    fi
+
     if [ -n "$FASTEST_MIRROR" ]; then
         echo "Detected fastest mirror source: $FASTEST_MIRROR (Time: ${FASTEST_TIME}s)"
         echo "Backing up original sources.list..."
         sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-        echo "Replacing sources.list with $FASTEST_MIRROR..."
+        
         CODE_NAME=$(lsb_release -sc)
-        NEW_SOURCES_LIST="deb ${FASTEST_MIRROR} ${CODE_NAME} main restricted universe multiverse\\n"
-        NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-updates main restricted universe multiverse\\n"
-        NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-backports main restricted universe multiverse\\n"
-        NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-security main restricted universe multiverse\\n"
+        
+        # For ARM64, use ports.ubuntu.com format
+        if [ "$ARCH" = "arm64" ] && [[ "$FASTEST_MIRROR" == *"ports.ubuntu.com"* ]]; then
+            echo "Replacing sources.list with $FASTEST_MIRROR (ARM64 ports format)..."
+            NEW_SOURCES_LIST="deb ${FASTEST_MIRROR} ${CODE_NAME} main restricted universe multiverse\\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-updates main restricted universe multiverse\\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-backports main restricted universe multiverse\\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-security main restricted universe multiverse\\n"
+        else
+            echo "Replacing sources.list with $FASTEST_MIRROR..."
+            NEW_SOURCES_LIST="deb ${FASTEST_MIRROR} ${CODE_NAME} main restricted universe multiverse\\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-updates main restricted universe multiverse\\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-backports main restricted universe multiverse\\n"
+            NEW_SOURCES_LIST+="deb ${FASTEST_MIRROR} ${CODE_NAME}-security main restricted universe multiverse\\n"
+        fi
+        
         echo -e "$NEW_SOURCES_LIST" | sudo tee /etc/apt/sources.list > /dev/null
         echo "APT mirror source updated."
     else
         echo "Failed to detect a usable fast mirror source, please check network or configure manually."
+        if [ "$ARCH" = "arm64" ]; then
+            echo "⚠️  建议：ARM64 架构请使用官方源 http://ports.ubuntu.com/ubuntu-ports/"
+        fi
     fi
 }
 

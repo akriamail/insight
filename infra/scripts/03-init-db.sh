@@ -3,16 +3,43 @@
 
 echo "🧐 正在检测数据库容器状态..."
 
+# 0. 首先检查容器是否存在
+if ! docker ps -a | grep -q "insight-db"; then
+    echo "❌ 错误: 数据库容器 'insight-db' 不存在！"
+    echo "💡 可能原因："
+    echo "   1. 镜像拉取失败（网络问题）"
+    echo "   2. 容器启动失败"
+    echo ""
+    echo "🔍 请检查："
+    echo "   docker ps -a | grep insight-db"
+    echo "   docker logs insight-db  # 如果容器存在"
+    echo ""
+    echo "💡 建议："
+    echo "   1. 如果是生产环境且无法访问 docker.io，请切换到开发环境部署"
+    echo "   2. 运行: ./manage.sh -> 5 -> 3 (开发环境部署，使用镜像加速)"
+    echo "   3. 或者手动拉取镜像: docker pull postgres:16-alpine"
+    exit 1
+fi
+
+# 检查容器是否在运行
+if ! docker ps | grep -q "insight-db"; then
+    echo "⚠️  数据库容器存在但未运行，尝试启动..."
+    docker start insight-db
+    sleep 3
+fi
+
 # 1. 循环检测 Postgres 端口，确保容器已完全启动
 RETRIES=10
-until docker exec insight-db pg_isready -U insight_admin || [ $RETRIES -eq 0 ]; do
+until docker exec insight-db pg_isready -U insight_admin 2>/dev/null || [ $RETRIES -eq 0 ]; do
   echo "⏳ 等待 Postgres 核心启动中... (剩余重试: $RETRIES)"
   sleep 3
   RETRIES=$((RETRIES - 1))
 done
 
 if [ $RETRIES -eq 0 ]; then
-    echo "❌ 错误: 数据库容器在指定时间内未就绪，请检查日志: docker logs insight-db"
+    echo "❌ 错误: 数据库容器在指定时间内未就绪"
+    echo "🔍 请检查日志: docker logs insight-db"
+    echo "💡 可能原因：数据库初始化失败或配置错误"
     exit 1
 fi
 
