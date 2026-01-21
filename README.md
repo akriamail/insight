@@ -42,6 +42,9 @@ Project Team Insight Infrastructure 是一个基于 Docker Compose 部署的集�
 ### 3. 日志与监控
 运行 `./manage.sh` 选择 `3 (状态与监控)` 可一次性查看容器状态及服务器硬件负载。
 
+### 4. ARM 主机说明（可选）
+如果你在 ARM64 主机上做冒烟测试，可能会遇到 APT 镜像源、Docker 网络地址池、DockerHub 拉取等“环境问题”。快速排障请看：[docs/ARM_KNOWN_ISSUES.md](./docs/ARM_KNOWN_ISSUES.md)
+
 ## 菜单功能详解
 
 **[一级菜单：基础运维]**
