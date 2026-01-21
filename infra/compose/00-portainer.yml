@@ -1,0 +1,20 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: insight-portainer
+    restart: always
+    ports:
+      - '${PORTAINER_PORT:-9000}:9000'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/insight/data/00-portainer:/data
+    networks:
+      - ${DOCKER_NETWORK_NAME:-insight-net}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+networks:
+  insight-net:
+    external: true

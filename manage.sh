@@ -122,8 +122,9 @@ advanced_menu() {
         echo -e "8) 🌐 Docker 镜像源配置"
         echo -e "9) ⚠️  全量数据恢复"
         echo -e "10) 🗑️  重置系统 (危险)"
+        echo -e "11) 🎯 安装 Portainer (Web 管理界面)"
         echo -e "0) ⬅️  返回主菜单"
-        read -p "选择 [0-10]: " adv_choice
+        read -p "选择 [0-11]: " adv_choice
         case $adv_choice in
             1) bash infra/scripts/00-bootstrap.sh ;;
             2) if check_env_configured; then sed -i 's/USE_DOCKER_MIRRORS=true/USE_DOCKER_MIRRORS=false/g' .env; bash infra/scripts/00-bootstrap.sh && bash infra/scripts/02-startup.sh && bash infra/scripts/03-init-db.sh; fi ;;
@@ -135,6 +136,7 @@ advanced_menu() {
             8) configure_docker_mirrors ;;
             9) bash infra/scripts/05-restore.sh ;;
             10) reset_system ;;
+            11) bash infra/scripts/08-install-portainer.sh ;;
             0) return ;;
             *) echo "❌ 无效选择" ;;
         esac
